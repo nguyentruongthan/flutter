@@ -5,8 +5,3 @@ class RecvValueEvent extends DeviceEvent {
   final String message;
 }
 
-class SendValueEvent extends DeviceEvent {
-  SendValueEvent(this.deviceID, this.value);
-  final String deviceID;
-  final String value;
-}

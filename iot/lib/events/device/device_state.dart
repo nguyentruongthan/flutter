@@ -5,8 +5,3 @@ class RecvValueState extends DeviceState {
   final String deviceID;
   final String value;
 }
-
-class SendValueState extends DeviceState {
-  SendValueState(this.message);
-  final String message;
-}

@@ -1,11 +1,9 @@
 // ignore_for_file: prefer_const_constructors, prefer_const_literals_to_create_immutables, must_be_immutable, use_key_in_widget_constructors
 
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 
 import 'package:iot/controller/mqtt_controler.dart';
 import 'package:iot/events/device/device_state.dart';
-import 'package:iot/events/device/device_event.dart';
 
 class DashBoard extends StatefulWidget {
   DashBoard({super.key});
@@ -79,13 +77,6 @@ class _DashBoardState extends State<DashBoard> {
     });
   }
 
-  void handleButton1(bool isChecked) {
-    bloc.eventController.sink.add(SendValueEvent('4', isChecked ? "1" : "0"));
-  }
-
-  void handleButton2(bool isChecked) {
-    bloc.eventController.sink.add(SendValueEvent('5', isChecked ? "1" : "0"));
-  }
 
   Sensor lightSensor = Sensor(
       name: "Ánh sáng",
@@ -245,8 +236,7 @@ class _NutNhanState extends State<NutNhan> {
             value: widget.isChecked,
             onChanged: (bool value) {
               setState(() {
-                bloc.eventController.sink
-                    .add(SendValueEvent(widget.deviceID, value ? "1" : "0"));
+                mqttClientHelper.publish("ai", "${widget.deviceID}:${value ? '1' : '0'}");
                 widget.isChecked = value;
               });
             },

@@ -6,7 +6,6 @@ import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
 import 'package:iot/events/device/device_bloc.dart';
 import 'package:iot/events/device/device_event.dart';
-import 'package:iot/events/device/device_state.dart';
 
 class MQTTClientHelper {
   final client = MqttServerClient('io.adafruit.com', '1883');
@@ -64,12 +63,6 @@ class MQTTClientHelper {
 
       onMessage(c[0].topic, pt);
     });
-
-    bloc.stateSendValueController.stream.listen((SendValueState state) {
-      
-      publish("ai", state.message);
-      
-    });
   }
 
   /// The subscribed callback
@@ -103,10 +96,7 @@ class MQTTClientHelper {
   }
 
   void onMessage(String topic, String message) {
-    topic = topic.split('/')[2];
-    if (topic == "ai") {
-      bloc.eventController.sink.add(RecvValueEvent(message));
-    }
+    bloc.eventController.sink.add(RecvValueEvent(message));
     //print('Received message: topic is $topic, payload is $message');
   }
 
