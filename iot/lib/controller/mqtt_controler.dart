@@ -77,7 +77,7 @@ class MQTTClientHelper {
         MqttDisconnectionOrigin.solicited) {
       print('OnDisconnected callback is solicited, this is correct');
     }
-    exit(-1);
+    // exit(-1);
   }
 
   /// The successful connect callback
@@ -96,8 +96,8 @@ class MQTTClientHelper {
   }
 
   void onMessage(String topic, String message) {
+    print('Received message: topic is $topic, payload is $message');
     bloc.eventController.sink.add(RecvValueEvent(message));
-    //print('Received message: topic is $topic, payload is $message');
   }
 
   void publish(String topic, String message) {

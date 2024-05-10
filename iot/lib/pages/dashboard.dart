@@ -1,9 +1,13 @@
 // ignore_for_file: prefer_const_constructors, prefer_const_literals_to_create_immutables, must_be_immutable, use_key_in_widget_constructors
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 
 import 'package:iot/controller/mqtt_controler.dart';
 import 'package:iot/events/device/device_state.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 
 class DashBoard extends StatefulWidget {
   DashBoard({super.key});
@@ -13,7 +17,19 @@ class DashBoard extends StatefulWidget {
 }
 
 class _DashBoardState extends State<DashBoard> {
+  bool showLoading = false;
+  // void setShowLoading(bool value) {
+  //   setState(() {
+  //     showLoading = value;
+  //   });
+  // }
+
   _DashBoardState() {
+    bloc.eventSetLoadingController.stream.listen((isLoading) {
+      setState(() {
+        showLoading = isLoading;
+      });
+    });
     // UI lắng nghe state thay đổi để update UI
     bloc.stateRecvValueController.stream.listen((RecvValueState state) {
       //listen state when MQTTClientHelper push state to bloc
@@ -55,28 +71,23 @@ class _DashBoardState extends State<DashBoard> {
         });
       } else if (deviceID == "4") {
         //nutnhan1
-        setState(() => 
-          nutNhan1 = NutNhan(
+        setState(() => nutNhan1 = NutNhan(
               //update new value for nutnhan1
               title: "Nút nhấn 1",
               isChecked: value == "1" ? true : false,
               deviceID: '4',
-              )
-        );
-      }else if (deviceID == "5") {
+            ));
+      } else if (deviceID == "5") {
         //nutnhan2
-        setState(() => 
-          nutNhan2 = NutNhan(
+        setState(() => nutNhan2 = NutNhan(
               //update new value for nutnhan1
               title: "Nút nhấn 2",
               isChecked: value == "1" ? true : false,
               deviceID: '5',
-              )
-        );
+            ));
       }
     });
   }
-
 
   Sensor lightSensor = Sensor(
       name: "Ánh sáng",
@@ -98,46 +109,67 @@ class _DashBoardState extends State<DashBoard> {
       icon: Icons.thermostat,
       iconColor: Colors.red.shade400,
       value: "Empty");
-  NutNhan nutNhan1 = NutNhan(
-      title: "Nút nhấn 1", isChecked: false, deviceID: '4');
-  NutNhan nutNhan2 = NutNhan(
-      title: "Nút nhấn 2", isChecked: false, deviceID: '5');
+  NutNhan nutNhan1 =
+      NutNhan(title: "Nút nhấn 1", isChecked: false, deviceID: '4');
+  NutNhan nutNhan2 =
+      NutNhan(title: "Nút nhấn 2", isChecked: false, deviceID: '5');
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        centerTitle: true,
-        title: Text(
-          "Dash Board",
-          style: TextStyle(
-              color: Colors.black, fontSize: 20, fontWeight: FontWeight.bold),
+        appBar: AppBar(
+          centerTitle: true,
+          title: Text(
+            "Dash Board",
+            style: TextStyle(
+                color: Colors.black, fontSize: 20, fontWeight: FontWeight.bold),
+          ),
         ),
-      ),
-      body: ListView(
-        children: [
-          lightSensor,
-          SizedBox(
-            height: 20,
-          ),
-          humiAirSensor,
-          SizedBox(
-            height: 20,
-          ),
-          tempSensor,
-          SizedBox(
-            height: 20,
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              nutNhan1,
-              nutNhan2,
-            ],
-          )
-        ],
-      ),
-    );
+        body: Stack(
+          // index: 1,
+          children: [
+            Container(
+              color: Colors.white,
+              child: ListView(
+                children: [
+                  lightSensor,
+                  SizedBox(
+                    height: 20,
+                  ),
+                  humiAirSensor,
+                  SizedBox(
+                    height: 20,
+                  ),
+                  tempSensor,
+                  SizedBox(
+                    height: 20,
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [nutNhan1, nutNhan2],
+                  )
+                ],
+              ),
+            ),
+            Visibility(
+              visible: showLoading,
+              child: Container(
+                color: Colors.grey.withOpacity(0.9),
+                width: double.infinity,
+                height: double.infinity,
+                alignment: Alignment.center,
+                child: Container(
+                  width: 100,
+                  height: 100,
+                  child: LoadingAnimationWidget.threeRotatingDots(
+                    color: Colors.white,
+                    size: 100,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ));
   }
 }
 
@@ -232,14 +264,38 @@ class _NutNhanState extends State<NutNhan> {
         ),
         Transform.scale(
           scale: 1.75,
-          child: (Switch(
-            value: widget.isChecked,
-            onChanged: (bool value) {
-              setState(() {
-                mqttClientHelper.publish("ai", "${widget.deviceID}:${value ? '1' : '0'}");
-                widget.isChecked = value;
-              });
-            },
+          child: (
+            Switch(
+              value: widget.isChecked,
+              onChanged: (bool value) {
+                // widget.setShowLoading!(true);
+                final currentTime = DateTime.now().millisecondsSinceEpoch;
+                mqttClientHelper.publish("ai",
+                    "3:${widget.deviceID}:${value ? '1' : '0'}:$currentTime");
+                // declare timeout
+                bloc.eventSetLoadingController.sink.add(true);
+                var duration = Duration(seconds: 10);
+                var subscription;
+                Timer timer;
+                //set timeout
+                timer = Timer(duration, () {
+                  print("Time out");
+                  bloc.eventSetLoadingController.sink.add(false);
+                  subscription.cancel();
+                });
+
+                subscription =
+                    bloc.eventAckController.stream.listen((String ack) {
+                  if (ack == currentTime.toString()) {
+                    timer.cancel();
+                    setState(() {
+                      widget.isChecked = value;
+                    });
+                    subscription.cancel();
+                    bloc.eventSetLoadingController.sink.add(false);
+                  }
+                });
+              },
           )),
         )
       ],

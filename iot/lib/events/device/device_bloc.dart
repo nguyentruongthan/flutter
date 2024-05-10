@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:iot/events/device/device_event.dart';
 import 'package:iot/events/device/device_state.dart';
@@ -13,18 +14,35 @@ class DeviceBloc {
 
   // this state return deviceID and value which is received from mqtt server
   final stateRecvValueController = StreamController<RecvValueState>();
+
+  // event ack
+  final eventAckController = StreamController<String>.broadcast();
+
+  // event setloading
+  final eventSetLoadingController = StreamController<bool>();
+
   DeviceBloc() {
     // lắng nghe khi eventController push event mới
     eventController.stream.listen((DeviceEvent event) {
       if (event is RecvValueEvent) {
         String message = event.message;
-        //message = <deviceID>:<value>
-        List splitMessage = message.split(":");
-        if (splitMessage.length != 2) return;
-        String deviceID = splitMessage[0];
-        String value = splitMessage[1];
-        state = RecvValueState(deviceID, value);
-        stateRecvValueController.sink.add(RecvValueState(deviceID, value));
+        List splitMessage = message.split(':');
+        final header = splitMessage[0];
+        if (header == '2') {
+          //header recv sensor value
+          //<header = 2>:<deviceID>:<value>
+          String deviceID = splitMessage[1];
+          String value = splitMessage[2];
+          // send state to UI
+          state = RecvValueState(deviceID, value);
+          stateRecvValueController.sink.add(RecvValueState(deviceID, value));
+        } 
+        else if (header == '6') {
+          //recv ACK
+          //<header = 6>:<ack>
+          eventAckController.sink.add(splitMessage[1]);
+        }
+        // print('end handle');
       }
     });
   }
